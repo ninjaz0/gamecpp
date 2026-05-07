@@ -114,7 +114,7 @@ void Player::chooseState(const InputState& input) {
         state_ = PlayerState::Dash;
         return;
     }
-    
+
     state_ = std::abs(input.moveX) > 0.01f ? PlayerState::Run : PlayerState::Idle;
 }
 
