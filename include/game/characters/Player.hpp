@@ -30,8 +30,11 @@ public:
     void takeDamage(Vector2 knockback);
 
     Rectangle bounds() const;
+    Rectangle attackBounds() const;
     Vector2 center() const;
     PlayerState state() const { return state_; }
+    int attackId() const { return attackId_; }
+    bool isAttacking() const { return attackTimer_ > 0.0f; }
 
 private:
     bool canStartDash() const;
@@ -42,6 +45,7 @@ private:
     PhysicsBody body_;
     PlayerState state_ = PlayerState::Idle;
     int facing_ = 1;
+    int attackId_ = 0;
     float attackTimer_ = 0.0f;
     float hurtTimer_ = 0.0f;
     float moveSpeed_ = 245.0f;

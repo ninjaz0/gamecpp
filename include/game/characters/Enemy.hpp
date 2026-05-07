@@ -13,12 +13,17 @@ public:
 
     void update(float dt, PhysicsSystem& physics, const Level& level);
     void draw(bool debugDraw) const;
+    bool takeDamage(int attackId, Vector2 knockback);
 
     Rectangle bounds() const;
+    bool isDead() const { return health_ <= 0; }
 
 private:
     PhysicsBody body_;
     int direction_ = -1;
+    int health_ = 3;
+    int lastHitAttackId_ = -1;
+    float hurtTimer_ = 0.0f;
     float patrolSpeed_ = 95.0f;
 };
 
