@@ -45,6 +45,8 @@ cmake --build build
 
 更完整的分模块学习教程见：`docs/team-module-tutorial.md`。
 
+多人协作 Git 规则见：`docs/git-collaboration-guide.md`。
+
 ## 文本关卡格式
 
 `assets/levels/demo.txt` 使用字符表示地图：
