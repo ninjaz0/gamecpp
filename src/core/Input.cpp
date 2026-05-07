@@ -31,7 +31,7 @@ void Input::update() {
 
         state_.jumpPressed = state_.jumpPressed || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         state_.attackPressed = state_.attackPressed || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
-        
+        state_.dashHeld = state_.dashHeld || IsGamepadButtonDown(0, GAMEPAD_BUTTON_LEFT_TRIGGER_1);
     }
 
     state_.moveX = std::clamp(state_.moveX, -1.0f, 1.0f);
