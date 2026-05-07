@@ -34,6 +34,8 @@ public:
     PlayerState state() const { return state_; }
 
 private:
+    bool canStartDash() const;
+    void startDash();
     void chooseState(const InputState& input);
     Color colorForState() const;
 
@@ -44,7 +46,13 @@ private:
     float hurtTimer_ = 0.0f;
     float moveSpeed_ = 245.0f;
     float jumpSpeed_ = -610.0f;
-    float dashSpeedMultiplier_ = 1.6f;
+    float dashTimer_ = 0.0f;
+    float dashCooldownTimer_ = 0.0f;
+    float dashDuration_ = 0.15f;
+    float dashCooldown_ = 0.35f;
+    float dashSpeed_ = 520.0f;
+    bool canAirDash_ = true;
+    bool wasDashHeld_ = false;
 };
 
 std::string_view toString(PlayerState state);
