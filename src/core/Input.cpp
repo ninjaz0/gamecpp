@@ -21,6 +21,7 @@ void Input::update() {
     state_.attackPressed = IsKeyPressed(KEY_J) || IsKeyPressed(KEY_K);
     state_.resetPressed = IsKeyPressed(KEY_R);
     state_.debugTogglePressed = IsKeyPressed(KEY_F1);
+    state_.dashHeld = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
 
     if (IsGamepadAvailable(0)) {
         const float axis = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X);
@@ -30,6 +31,7 @@ void Input::update() {
 
         state_.jumpPressed = state_.jumpPressed || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
         state_.attackPressed = state_.attackPressed || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
+        
     }
 
     state_.moveX = std::clamp(state_.moveX, -1.0f, 1.0f);

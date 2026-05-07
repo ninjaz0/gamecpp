@@ -16,7 +16,8 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
     if (hurtTimer_ > 0.0f) {
         hurtTimer_ -= dt;
     } else {
-        body_.velocity.x = input.moveX * moveSpeed_;
+        const float speedMultiplier = input.dashHeld ? dashSpeedMultiplier_ : 1.0f;
+        body_.velocity.x = input.moveX * moveSpeed_ * speedMultiplier;
 
         if (input.jumpPressed && body_.grounded) {
             body_.velocity.y = jumpSpeed_;
@@ -109,7 +110,11 @@ void Player::chooseState(const InputState& input) {
         state_ = body_.velocity.y < 0.0f ? PlayerState::Jump : PlayerState::Fall;
         return;
     }
-
+    if (input.dashHeld && std::abs(input.moveX) > 0.01f) {
+        state_ = PlayerState::Dash;
+        return;
+    }
+    
     state_ = std::abs(input.moveX) > 0.01f ? PlayerState::Run : PlayerState::Idle;
 }
 
@@ -121,6 +126,7 @@ Color Player::colorForState() const {
         case PlayerState::Fall: return Color{150, 105, 210, 255};
         case PlayerState::Attack: return Color{235, 186, 76, 255};
         case PlayerState::Hurt: return Color{220, 75, 80, 255};
+        case PlayerState::Dash: return Color{255, 215, 0, 255};
     }
 
     return WHITE;
@@ -134,6 +140,7 @@ std::string_view toString(PlayerState state) {
         case PlayerState::Fall: return "Fall";
         case PlayerState::Attack: return "Attack";
         case PlayerState::Hurt: return "Hurt";
+        case PlayerState::Dash: return "Dash";
     }
 
     return "Unknown";
