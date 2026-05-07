@@ -8,6 +8,7 @@ struct InputState {
     bool attackPressed = false;
     bool resetPressed = false;
     bool debugTogglePressed = false;
+    bool dashHeld = false;
 };
 
 class Input {

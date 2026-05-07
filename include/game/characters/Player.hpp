@@ -13,6 +13,7 @@ namespace game {
 enum class PlayerState {
     Idle,
     Run,
+    Dash,
     Jump,
     Fall,
     Attack,
@@ -43,6 +44,7 @@ private:
     float hurtTimer_ = 0.0f;
     float moveSpeed_ = 245.0f;
     float jumpSpeed_ = -610.0f;
+    float dashSpeedMultiplier_ = 1.6f;
 };
 
 std::string_view toString(PlayerState state);
