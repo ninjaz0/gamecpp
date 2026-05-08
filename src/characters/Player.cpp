@@ -17,7 +17,31 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
         hurtTimer_ -= dt;
     } else {
         const float speedMultiplier = input.dashHeld ? dashSpeedMultiplier_ : 1.0f;
-        body_.velocity.x = input.moveX * moveSpeed_ * speedMultiplier;
+		float maxSpeed = moveSpeed_ * speedMultiplier;
+        if (std::abs(input.moveX) > 0.01f)
+        {
+            
+            float targetVel = input.moveX * maxSpeed;
+          
+            body_.velocity.x = std::lerp(body_.velocity.x, targetVel, accel_ * dt);
+        }
+        
+        else if (body_.grounded)
+        {
+            if (std::abs(body_.velocity.x) > 5.0f)
+            {
+               
+                float decel = friction_ * dt;
+                if (body_.velocity.x > 0)
+                    body_.velocity.x -= decel;
+                else
+                    body_.velocity.x += decel;
+            }
+            else
+            {
+                body_.velocity.x = 0.0f;
+            }
+        }
 
         if (input.jumpPressed && body_.grounded) {
             body_.velocity.y = jumpSpeed_;
