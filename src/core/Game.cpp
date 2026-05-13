@@ -68,11 +68,21 @@ void Game::update(float dt) {
 
     for (Enemy& enemy : enemies_) {
         enemy.update(dt, physics_, level_);
-        if (CheckCollisionRecs(player_->bounds(), enemy.bounds())) {
+
+        if (!enemy.isDead() && player_->isAttacking() && CheckCollisionRecs(player_->attackBounds(), enemy.bounds())) {
+            const float knockbackX = player_->center().x < enemy.bounds().x ? 260.0f : -260.0f;
+            enemy.takeDamage(player_->attackId(), Vector2{knockbackX, -170.0f});
+        }
+
+        if (!enemy.isDead() && CheckCollisionRecs(player_->bounds(), enemy.bounds())) {
             const float knockbackX = player_->center().x < enemy.bounds().x ? -360.0f : 360.0f;
             player_->takeDamage(Vector2{knockbackX, -360.0f});
         }
     }
+
+    std::erase_if(enemies_, [](const Enemy& enemy) {
+        return enemy.isDead();
+    });
 
     updateCamera();
 }
