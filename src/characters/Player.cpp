@@ -14,10 +14,6 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
 
     dashCooldownTimer_ = std::max(dashCooldownTimer_ - dt, 0.0f);
 
-    if (body_.grounded) {
-        canAirDash_ = true;
-    }
-
     if (input.moveX != 0.0f && dashTimer_ <= 0.0f) {
         facing_ = input.moveX > 0.0f ? 1 : -1;
     }
