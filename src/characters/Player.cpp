@@ -1,5 +1,6 @@
 #include "game/characters/Player.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace game {
@@ -9,62 +10,83 @@ Player::Player(Vector2 spawnPosition) {
 }
 
 void Player::update(float dt, const InputState& input, PhysicsSystem& physics, const Level& level) {
-    if (input.moveX != 0.0f) {
+    const bool dashPressed = input.dashHeld && !wasDashHeld_;
+
+    dashCooldownTimer_ = std::max(dashCooldownTimer_ - dt, 0.0f);
+    invulnerabilityTimer_ = std::max(invulnerabilityTimer_ - dt, 0.0f);
+
+    if (input.moveX != 0.0f && dashTimer_ <= 0.0f) {
         facing_ = input.moveX > 0.0f ? 1 : -1;
     }
 
-    if (hurtTimer_ > 0.0f) {
+    if (isDead()) {
+        body_.velocity.x *= 0.9f;
+    } else if (hurtTimer_ > 0.0f) {
         hurtTimer_ -= dt;
+        dashTimer_ = 0.0f;
+        body_.gravityScale = 1.0f;
     } else {
-        const float speedMultiplier = input.dashHeld ? dashSpeedMultiplier_ : 1.0f;
-		float maxSpeed = moveSpeed_ * speedMultiplier;
-        if (std::abs(input.moveX) > 0.01f)
-        {
-            
-            float targetVel = input.moveX * maxSpeed;
-          
-            body_.velocity.x = std::lerp(body_.velocity.x, targetVel, accel_ * dt);
-        }
-        
-        else if (body_.grounded)
-        {
-            if (std::abs(body_.velocity.x) > 5.0f)
-            {
-               
-                float decel = friction_ * dt;
-                if (body_.velocity.x > 0)
-                    body_.velocity.x -= decel;
-                else
-                    body_.velocity.x += decel;
-            }
-            else
-            {
-                body_.velocity.x = 0.0f;
-            }
+        if (dashPressed && canStartDash()) {
+            startDash();
         }
 
-        if (input.jumpPressed && body_.grounded) {
-            body_.velocity.y = jumpSpeed_;
-            body_.grounded = false;
-        }
+        if (dashTimer_ > 0.0f) {
+            dashTimer_ = std::max(dashTimer_ - dt, 0.0f);
+            body_.gravityScale = 0.0f;
+            body_.velocity.x = static_cast<float>(facing_) * dashSpeed_;
+            body_.velocity.y = body_.grounded ? 12.0f : 0.0f;
+        } else {
+            body_.gravityScale = 1.0f;
+            if (std::abs(input.moveX) > 0.01f) {
+                const float targetVel = input.moveX * moveSpeed_;
+                body_.velocity.x = std::lerp(body_.velocity.x, targetVel, accel_ * dt);
+            } else if (body_.grounded) {
+                if (std::abs(body_.velocity.x) > 5.0f) {
+                    const float decel = friction_ * dt;
+                    body_.velocity.x += body_.velocity.x > 0.0f ? -decel : decel;
+                } else {
+                    body_.velocity.x = 0.0f;
+                }
+            }
 
-        if (input.attackPressed && attackTimer_ <= 0.0f) {
-            attackTimer_ = 0.22f;
+            if (input.jumpPressed && body_.grounded) {
+                body_.velocity.y = jumpSpeed_;
+                body_.grounded = false;
+            }
+
+            if (input.attackPressed && attackTimer_ <= 0.0f) {
+                attackTimer_ = 0.22f;
+                ++attackId_;
+            }
         }
     }
 
-    if (attackTimer_ > 0.0f) {
-        attackTimer_ -= dt;
+    if (attackTimer_ > 0.0f && dashTimer_ <= 0.0f) {
+        attackTimer_ = std::max(attackTimer_ - dt, 0.0f);
         body_.velocity.x *= 0.55f;
     }
 
-    physics.step(body_, level.solids(), dt);
+    const CollisionInfo collision = physics.step(body_, level.solids(), dt);
+    if (dashTimer_ > 0.0f && (collision.hitLeft || collision.hitRight)) {
+        dashTimer_ = 0.0f;
+    }
+
+    body_.gravityScale = dashTimer_ > 0.0f ? 0.0f : 1.0f;
+
+    if (body_.grounded) {
+        canAirDash_ = true;
+    }
+
+    wasDashHeld_ = input.dashHeld;
     chooseState(input);
 }
 
 void Player::draw(bool debugDraw) const {
     const Rectangle rect = body_.bounds();
-    const Color bodyColor = colorForState();
+    Color bodyColor = colorForState();
+    if (invulnerabilityTimer_ > 0.0f && static_cast<int>(invulnerabilityTimer_ * 20.0f) % 2 == 0) {
+        bodyColor.a = 135;
+    }
 
     DrawRectangleRounded(rect, 0.18f, 8, bodyColor);
     DrawRectangle(static_cast<int>(rect.x + (facing_ > 0 ? rect.width - 9.0f : 4.0f)),
@@ -74,17 +96,24 @@ void Player::draw(bool debugDraw) const {
                   RAYWHITE);
 
     if (state_ == PlayerState::Attack) {
-        const Rectangle attackBox{
-            facing_ > 0 ? rect.x + rect.width : rect.x - 30.0f,
-            rect.y + 12.0f,
-            30.0f,
-            18.0f
+        DrawRectangleRec(attackBounds(), Color{244, 210, 92, 150});
+    }
+
+    if (state_ == PlayerState::Dash) {
+        const Rectangle trail{
+            facing_ > 0 ? rect.x - 22.0f : rect.x + rect.width,
+            rect.y + 6.0f,
+            22.0f,
+            rect.height - 12.0f
         };
-        DrawRectangleRec(attackBox, Color{244, 210, 92, 150});
+        DrawRectangleRec(trail, Color{92, 220, 230, 95});
     }
 
     if (debugDraw) {
         DrawRectangleLinesEx(rect, 2.0f, GREEN);
+        if (isAttacking()) {
+            DrawRectangleLinesEx(attackBounds(), 1.0f, Color{244, 210, 92, 255});
+        }
         DrawLineV(center(), Vector2{center().x + body_.velocity.x * 0.12f, center().y + body_.velocity.y * 0.12f}, SKYBLUE);
     }
 }
@@ -95,21 +124,47 @@ void Player::reset(Vector2 position) {
     body_.velocity = Vector2{};
     body_.grounded = false;
     state_ = PlayerState::Idle;
+    attackId_ = 0;
+    health_ = maxHealth_;
     attackTimer_ = 0.0f;
     hurtTimer_ = 0.0f;
+    invulnerabilityTimer_ = 0.0f;
+    dashTimer_ = 0.0f;
+    dashCooldownTimer_ = 0.0f;
+    body_.gravityScale = 1.0f;
+    canAirDash_ = true;
+    wasDashHeld_ = false;
     facing_ = 1;
 }
 
 void Player::takeDamage(Vector2 knockback) {
+    if (isDead() || invulnerabilityTimer_ > 0.0f) {
+        return;
+    }
+
+    health_ = std::max(health_ - 1, 0);
     body_.velocity = knockback;
     body_.grounded = false;
+    body_.gravityScale = 1.0f;
     hurtTimer_ = 0.35f;
+    invulnerabilityTimer_ = 0.95f;
     attackTimer_ = 0.0f;
+    dashTimer_ = 0.0f;
     state_ = PlayerState::Hurt;
 }
 
 Rectangle Player::bounds() const {
     return body_.bounds();
+}
+
+Rectangle Player::attackBounds() const {
+    const Rectangle rect = bounds();
+    return Rectangle{
+        facing_ > 0 ? rect.x + rect.width : rect.x - 34.0f,
+        rect.y + 11.0f,
+        34.0f,
+        20.0f
+    };
 }
 
 Vector2 Player::center() const {
@@ -119,9 +174,28 @@ Vector2 Player::center() const {
     };
 }
 
+bool Player::canStartDash() const {
+    return dashTimer_ <= 0.0f && dashCooldownTimer_ <= 0.0f && (body_.grounded || canAirDash_);
+}
+
+void Player::startDash() {
+    dashTimer_ = dashDuration_;
+    dashCooldownTimer_ = dashCooldown_;
+    attackTimer_ = 0.0f;
+
+    if (!body_.grounded) {
+        canAirDash_ = false;
+    }
+}
+
 void Player::chooseState(const InputState& input) {
     if (hurtTimer_ > 0.0f) {
         state_ = PlayerState::Hurt;
+        return;
+    }
+
+    if (dashTimer_ > 0.0f) {
+        state_ = PlayerState::Dash;
         return;
     }
 
@@ -132,10 +206,6 @@ void Player::chooseState(const InputState& input) {
 
     if (!body_.grounded) {
         state_ = body_.velocity.y < 0.0f ? PlayerState::Jump : PlayerState::Fall;
-        return;
-    }
-    if (input.dashHeld && std::abs(input.moveX) > 0.01f) {
-        state_ = PlayerState::Dash;
         return;
     }
 
