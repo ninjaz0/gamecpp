@@ -44,7 +44,9 @@ private:
     float hurtTimer_ = 0.0f;
     float moveSpeed_ = 245.0f;
     float jumpSpeed_ = -610.0f;
-    float dashSpeedMultiplier_ = 1.6f;
+    float dashSpeedMultiplier_ = 1.6f;      
+    float accel_ = 10.0f;           
+    float friction_ = 900.0f;
 };
 
 std::string_view toString(PlayerState state);
