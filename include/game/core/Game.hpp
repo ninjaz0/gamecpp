@@ -24,10 +24,20 @@ public:
     void run();
 
 private:
+    struct Collectible {
+        Rectangle bounds{};
+        bool collected = false;
+    };
+
     void update(float dt);
     void draw() const;
     void resetWorld();
     void updateCamera();
+    void updateCollectibles();
+    void updateHazards();
+    void updateGoal();
+    void drawCollectibles() const;
+    void drawHud() const;
 
     static constexpr int screenWidth_ = 1280;
     static constexpr int screenHeight_ = 720;
@@ -38,8 +48,12 @@ private:
     Level level_;
     std::unique_ptr<Player> player_;
     std::vector<Enemy> enemies_;
+    std::vector<Collectible> collectibles_;
     Camera2D camera_{};
+    int collectedCount_ = 0;
     bool debugDraw_ = false;
+    bool gameWon_ = false;
+    bool gameOver_ = false;
 };
 
 } // namespace game

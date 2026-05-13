@@ -10,6 +10,10 @@ namespace game {
 struct LevelData {
     Vector2 playerSpawn{96.0f, 96.0f};
     std::vector<Vector2> enemySpawns;
+    std::vector<Rectangle> collectibles;
+    std::vector<Rectangle> hazards;
+    Rectangle goal{};
+    bool hasGoal = false;
 };
 
 class Level {
