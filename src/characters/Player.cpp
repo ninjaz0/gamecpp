@@ -34,7 +34,17 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
             body_.velocity.y = body_.grounded ? 12.0f : 0.0f;
         } else {
             body_.gravityScale = 1.0f;
-            body_.velocity.x = input.moveX * moveSpeed_;
+            if (std::abs(input.moveX) > 0.01f) {
+                const float targetVel = input.moveX * moveSpeed_;
+                body_.velocity.x = std::lerp(body_.velocity.x, targetVel, accel_ * dt);
+            } else if (body_.grounded) {
+                if (std::abs(body_.velocity.x) > 5.0f) {
+                    const float decel = friction_ * dt;
+                    body_.velocity.x += body_.velocity.x > 0.0f ? -decel : decel;
+                } else {
+                    body_.velocity.x = 0.0f;
+                }
+            }
 
             if (input.jumpPressed && body_.grounded) {
                 body_.velocity.y = jumpSpeed_;
