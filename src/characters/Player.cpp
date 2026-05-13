@@ -47,6 +47,7 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
 
             if (input.attackPressed && attackTimer_ <= 0.0f) {
                 attackTimer_ = 0.22f;
+                ++attackId_;
             }
         }
     }
@@ -83,13 +84,7 @@ void Player::draw(bool debugDraw) const {
                   RAYWHITE);
 
     if (state_ == PlayerState::Attack) {
-        const Rectangle attackBox{
-            facing_ > 0 ? rect.x + rect.width : rect.x - 30.0f,
-            rect.y + 12.0f,
-            30.0f,
-            18.0f
-        };
-        DrawRectangleRec(attackBox, Color{244, 210, 92, 150});
+        DrawRectangleRec(attackBounds(), Color{244, 210, 92, 150});
     }
 
     if (state_ == PlayerState::Dash) {
@@ -114,6 +109,7 @@ void Player::reset(Vector2 position) {
     body_.velocity = Vector2{};
     body_.grounded = false;
     state_ = PlayerState::Idle;
+    attackId_ = 0;
     attackTimer_ = 0.0f;
     hurtTimer_ = 0.0f;
     dashTimer_ = 0.0f;
@@ -136,6 +132,16 @@ void Player::takeDamage(Vector2 knockback) {
 
 Rectangle Player::bounds() const {
     return body_.bounds();
+}
+
+Rectangle Player::attackBounds() const {
+    const Rectangle rect = bounds();
+    return Rectangle{
+        facing_ > 0 ? rect.x + rect.width : rect.x - 34.0f,
+        rect.y + 11.0f,
+        34.0f,
+        20.0f
+    };
 }
 
 Vector2 Player::center() const {
