@@ -62,7 +62,7 @@ void Player::update(float dt, const InputState& input, PhysicsSystem& physics, c
         dashTimer_ = 0.0f;
     }
 
-    body_.gravityScale = 1.0f;
+    body_.gravityScale = dashTimer_ > 0.0f ? 0.0f : 1.0f;
 
     if (body_.grounded) {
         canAirDash_ = true;
